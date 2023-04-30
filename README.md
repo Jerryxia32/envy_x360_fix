@@ -1,5 +1,5 @@
-Linux support for HP Envy x360 13-bf0xxx
-========================================
+Linux support for HP Envy x360 13" 2022 (13-bf0xxx)
+===================================================
 
 HP Envy x360 13-bf0xxx comes with terrible Linux support.
 The default Linux kernel 6.1 under Debian 12 Bookworm does not work properly with the speakers.
