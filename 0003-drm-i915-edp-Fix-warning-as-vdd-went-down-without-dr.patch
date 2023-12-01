@@ -1,0 +1,50 @@
+From 12f8a56c9f8d380a50f64aadf5f6aa1a5f301155 Mon Sep 17 00:00:00 2001
+Message-Id: <12f8a56c9f8d380a50f64aadf5f6aa1a5f301155.1701029707.git.Hongyan.Xia2@arm.com>
+In-Reply-To: <99814f15aba8673594ba368ece1f05df1ba48b60.1701029707.git.Hongyan.Xia2@arm.com>
+References: <99814f15aba8673594ba368ece1f05df1ba48b60.1701029707.git.Hongyan.Xia2@arm.com>
+From: Animesh Manna <animesh.manna@intel.com>
+Date: Wed, 9 Nov 2022 02:48:22 +0530
+Subject: [PATCH 3/3] drm/i915/edp: Fix warning as vdd went down without driver
+ knowledge
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Kernel warning triggered as vdd went down after certain time during
+aux transfer in connector init sequence. To solve the kernel
+warning adjust power domain and vdd wakeref count.
+Currently issue seen on ADL so add the above adjustment part of
+ADL platform check, if needed will extend for future platform.
+
+Cc: Jani Nikula <jani.nikula@intel.com>
+Cc: Ville Syrjälä <ville.syrjala@linux.intel.com>
+Cc: Uma Shankar <uma.shankar@intel.com>
+Signed-off-by: Animesh Manna <animesh.manna@intel.com>
+---
+ drivers/gpu/drm/i915/display/intel_pps.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/gpu/drm/i915/display/intel_pps.c b/drivers/gpu/drm/i915/display/intel_pps.c
+index 9ed62c891..61a3225c2 100644
+--- a/drivers/gpu/drm/i915/display/intel_pps.c
++++ b/drivers/gpu/drm/i915/display/intel_pps.c
+@@ -586,8 +586,15 @@ bool intel_pps_vdd_on_unlocked(struct intel_dp *intel_dp)
+ 	cancel_delayed_work(&intel_dp->pps.panel_vdd_work);
+ 	intel_dp->pps.want_panel_vdd = true;
+ 
+-	if (edp_have_panel_vdd(intel_dp))
++	if (edp_have_panel_vdd(intel_dp)) {
+ 		return need_to_disable;
++	} else {
++		if ((IS_ALDERLAKE_S(dev_priv) || IS_ALDERLAKE_P(dev_priv)) &&
++		    intel_dp->pps.vdd_wakeref)
++			intel_display_power_put(dev_priv,
++						intel_aux_power_domain(dig_port),
++						fetch_and_zero(&intel_dp->pps.vdd_wakeref));
++	}
+ 
+ 	drm_WARN_ON(&dev_priv->drm, intel_dp->pps.vdd_wakeref);
+ 	intel_dp->pps.vdd_wakeref = intel_display_power_get(dev_priv,
+-- 
+2.34.1
+
